@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080d18">
+<title>FootPredict AI | Prédictions Football</title>
+<style>
+:root {
+  --bg:#080d18;
+  --panel:#111a2b;
+  --panel2:#172239;
+  --green:#20e59a;
+  --text:#f4f7ff;
+  --muted:#93a1b8;
+  --border:#26344b;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+}
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 6%;border-bottom:1px solid var(--border);
+  background:#0c1322;gap:15px;flex-wrap:wrap;
+}
+.logo{font-size:23px;font-weight:900}
+.logo span{color:var(--green)}
+.badge{
+  color:var(--green);border:1px solid #1c7859;
+  padding:7px 11px;border-radius:20px;font-size:12px;
+}
+main{max-width:1150px;margin:auto;padding:30px 20px}
+.hero{margin-bottom:28px}
+.hero h1{font-size:clamp(30px,5vw,46px);margin:0 0 12px}
+.hero h1 span{color:var(--green)}
+.hero p{color:var(--muted);line-height:1.6}
+.toolbar{
+  display:flex;gap:10px;flex-wrap:wrap;margin:24px 0;
+}
+input,select,button{
+  font:inherit;border-radius:10px;padding:12px;
+}
+input,select{
+  background:var(--panel);border:1px solid var(--border);
+  color:var(--text);min-width:150px;
+}
+button{
+  cursor:pointer;border:0;background:var(--green);
+  color:#04130d;font-weight:bold;
+}
+button.secondary{
+  background:var(--panel2);color:var(--text);
+  border:1px solid var(--border);
+}
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:12px;margin:22px 0;
+}
+.stat,.match,.empty{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:18px;
+}
+.stat strong{display:block;font-size:26px;margin-bottom:6px}
+.stat small{color:var(--muted)}
+.section-title{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:10px;flex-wrap:wrap;margin:30px 0 15px;
+}
+.section-title h2{font-size:22px;margin:0}
+.matches{display:grid;gap:14px}
+.match-top{
+  display:flex;justify-content:space-between;gap:10px;
+  flex-wrap:wrap;color:var(--muted);font-size:12px;
+}
+.teams{
+  display:grid;grid-template-columns:1fr auto 1fr;
+  align-items:center;gap:12px;margin:22px 0;text-align:center;
+}
+.team{font-weight:bold;line-height:1.5}
+.vs{color:var(--muted);font-size:12px}
+.score{font-size:20px;font-weight:bold}
+.prediction{
+  background:var(--panel2);border-radius:10px;
+  padding:14px;margin-top:12px;
+}
+.prediction strong{color:var(--green)}
+.note{color:var(--muted);font-size:12px;line-height:1.6}
+.status{font-size:12px;color:var(--green)}
+footer{
+  text-align:center;color:var(--muted);padding:30px 15px;
+  border-top:1px solid var(--border);margin-top:35px;
+}
+@media(max-width:600px){
+  header{padding:16px}
+  main{padding:22px 14px}
+  .stats{grid-template-columns:1fr}
+  .stat{padding:14px}
+  .teams{gap:5px}
+  .team{font-size:13px;overflow-wrap:anywhere}
+  input,select,button{width:100%}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">⚽ FootPredict <span>AI</span></div>
+  <div class="badge">● PLATEFORME FOOTBALL</div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>Les matchs. <span>Les statistiques.</span><br>Les prédictions.</h1>
+    <p>Retrouve les rencontres de football et découvre des analyses
+    statistiques pour mieux comprendre chaque match.</p>
+  </section>
+
+  <div class="toolbar">
+    <input type="date" id="date">
+    <select id="period">
+      <option value="1">Matchs du jour</option>
+      <option value="3">3 prochains jours</option>
+      <option value="7" selected>7 prochains jours</option>
+    </select>
+    <button id="load">Rechercher les matchs</button>
+    <button class="secondary" id="today">Aujourd'hui</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><strong id="total">—</strong><small>Matchs trouvés</small></div>
+    <div class="stat"><strong id="live">—</strong><small>Matchs en direct</small></div>
+    <div class="stat"><strong id="leagues">—</strong><small>Compétitions</small></div>
+  </div>
+
+  <div class="section-title">
+    <h2>📅 Calendrier des matchs</h2>
+    <span class="status" id="status">Prêt à charger les matchs</span>
+  </div>
+
+  <div class="matches" id="matches">
+    <div class="empty">
+      <h3>Bienvenue sur FootPredict AI</h3>
+      <p class="note">Clique sur « Rechercher les matchs » pour charger
+      les rencontres depuis notre serveur football.</p>
+    </div>
+  </div>
+
+  <p class="note" style="margin-top:22px">
+    Les analyses affichées sont indicatives et ne garantissent aucun résultat.
+    Une prédiction statistique n'est jamais une certitude.
+  </p>
+</main>
+
+<footer>FootPredict AI · Football & statistiques · 2026</footer>
+
+<script>
+const API = "https://proud-sea-4840.pirucas699.workers.dev/matches";
+
+const $ = id => document.getElementById(id);
+
+function localDate(date){
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,"0");
+  const d = String(date.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+
+$("date").value = localDate(new Date());
+
+function escapeHTML(value){
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[c]);
+}
+
+function getTeam(match, side){
+  const team = match[side+"Team"] || match[side] || {};
+  return typeof team === "string" ? team : (team.name || "Équipe inconnue");
+}
+
+function getMatches(data){
+  if(Array.isArray(data)) return data;
+  if(Array.isArray(data.matches)) return data.matches;
+  if(data.resultSet && Array.isArray(data.resultSet.matches)) return data.resultSet.matches;
+  return [];
+}
+
+function getDate(match){
+  return match.utcDate || match.date || match.fixture?.date || "";
+}
+
+function getStatus(match){
+  const status = match.status;
+  if(typeof status === "string") return status;
+  if(status && typeof status === "object") return status.long || status.short || "";
+  return match.fixture?.status?.short || "";
+}
+
+function getScore(match){
+  const score = match.score || match.goals || {};
+  const home = score.fullTime?.home ?? score.home ?? match.homeScore;
+  const away = score.fullTime?.away ?? score.away ?? match.awayScore;
+  if(home == null || away == null) return "VS";
+  return `${home} - ${away}`;
+}
+
+function getCompetition(match){
+  const comp = match.competition || match.league || {};
+  return typeof comp === "string" ? comp : (comp.name || "Football");
+}
+
+function prediction(match){
+  const status = getStatus(match).toUpperCase();
+  const score = match.score || {};
+  const home = score.fullTime?.home ?? score.home;
+  const away = score.fullTime?.away ?? score.away;
+
+  if(home != null && away != null){
+    if(home > away) return "Victoire domicile";
+    if(home < away) return "Victoire extérieur";
+    return "Match nul";
+  }
+
+  return "Données insuffisantes pour calculer une probabilité fiable";
+}
+
+function renderMatches(matches){
+  $("total").textContent = matches.length;
+  $("live").textContent = matches.filter(m =>
+    ["IN_PLAY","LIVE","1H","2H","HT","ET","P"].includes(getStatus(m).toUpperCase())
+  ).length;
+  $("leagues").textContent = new Set(matches.map(getCompetition)).size;
+
+  if(!matches.length){
+    $("matches").innerHTML = `<div class="empty">
+      <h3>Aucun match trouvé</h3>
+      <p class="note">Essaie une autre date ou une période plus longue.</p>
+    </div>`;
+    return;
+  }
+
+  $("matches").innerHTML = matches.map(match => {
+    const home = getTeam(match,"home");
+    const away = getTeam(match,"away");
+    const date = getDate(match);
+    const time = date ? new Date(date).toLocaleString("fr-FR",{
+      day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"
+    }) : "Horaire indisponible";
+    const status = getStatus(match) || "Programmé";
+    const competition = getCompetition(match);
+    const score = getScore(match);
+    const emblemHome = match.homeTeam?.crest || match.homeTeam?.emblem || "";
+    const emblemAway = match.awayTeam?.crest || match.awayTeam?.emblem || "";
+
+    return `<article class="match">
+      <div class="match-top">
+        <span>${escapeHTML(competition)}</span>
+        <span>${escapeHTML(time)} · ${escapeHTML(status)}</span>
+      </div>
+      <div class="teams">
+        <div class="team">${emblemHome ? `<img src="${escapeHTML(emblemHome)}" alt="" style="width:28px;height:28px;object-fit:contain;display:block;margin:0 auto 8px">` : ""}
+          ${escapeHTML(home)}</div>
+        <div class="score">${escapeHTML(score)}</div>
+        <div class="team">${emblemAway ? `<img src="${escapeHTML(emblemAway)}" alt="" style="width:28px;height:28px;object-fit:contain;display:block;margin:0 auto 8px">` : ""}
+          ${escapeHTML(away)}</div>
+      </div>
+      <div class="prediction">
+        <strong>📊 Analyse du match</strong>
+        <p style="margin-bottom:5px">${escapeHTML(prediction(match))}</p>
+        <p class="note">Cette première version affiche le calendrier et les résultats disponibles.
+        Une véritable prédiction pré-match nécessitera des statistiques historiques supplémentaires.</p>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+async function loadMatches(){
+  const start = $("date").value || localDate(new Date());
+  const days = Number($("period").value);
+  const endDate = new Date(start+"T12:00:00");
+  endDate.setDate(endDate.getDate()+days-1);
+  const end = localDate(endDate);
+
+  $("status").textContent = "Chargement...";
+  $("matches").innerHTML = `<div class="empty">Chargement des rencontres...</div>`;
+  $("load").disabled = true;
+
+  try{
+    const url = `${API}?dateFrom=${encodeURIComponent(start)}&dateTo=${encodeURIComponent(end)}`;
+    const response = await fetch(url);
+    if(!response.ok) throw new Error("Erreur serveur : "+response.status);
+
+    const data = await response.json();
+    if(data.status === "upstream_error") {
+      throw new Error("Le fournisseur football a refusé la requête.");
+    }
+
+    const matches = getMatches(data);
+    matches.sort((a,b) => new Date(getDate(a)||0)-new Date(getDate(b)||0));
+    renderMatches(matches);
+    $("status").textContent = "Données actualisées";
+  }catch(error){
+    $("total").textContent = "—";
+    $("live").textContent = "—";
+    $("leagues").textContent = "—";
+    $("matches").innerHTML = `<div class="empty">
+      <h3>Impossible de charger les matchs</h3>
+      <p>${escapeHTML(error.message)}</p>
+      <p class="note">Vérifie que le serveur Cloudflare fonctionne et autorise les requêtes depuis ce site.</p>
+      <button onclick="loadMatches()">Réessayer</button>
+    </div>`;
+    $("status").textContent = "Erreur de connexion";
+  }finally{
+    $("load").disabled = false;
+  }
+}
+
+$("load").addEventListener("click",loadMatches);
+$("today").addEventListener("click",()=>{
+  $("date").value = localDate(new Date());
+  $("period").value = "1";
+  loadMatches();
+});
+$("period").addEventListener("change",loadMatches);
+$("date").addEventListener("change",loadMatches);
+
+loadMatches();
+</script>
+</body>
+</html>
